@@ -7,6 +7,7 @@ library(openNLP)
 library(RWeka)
 #install.packages("RMySQL")
 library(RMySQL)
+options(java.parameters = "- Xmx1024m")
 
 
 #https://www.r-bloggers.com/connecting-r-to-mysqlmariadb/
@@ -42,7 +43,8 @@ entities <- function(doc, kind) {
 #openconnecton to read file
 #inputFile <- "equityurls.txt"
 #using a shorter test file, each edition takes a long time.
-inputFile <- "equityurls_1970.txt"
+#inputFile <- "equityurls_1970-08.txt"
+inputFile <- "equityurls_test2.txt"
 
 inputCon  <- file(inputFile, open = "r")
 
@@ -124,7 +126,7 @@ while (length(urlLine <-
     
     #Store equity edition into database
     #first, check if it is already in the database
-    query<-paste("select * from sourcedocuments where sourcedocumentname='",editionFileName,"'",sep='')
+    query<-paste("select * from source_documents where source_document_name='",editionFileName,"'",sep='')
     print (query)
     rs = dbSendQuery(mydb,query)
     dbRows<-dbFetch(rs)
@@ -132,7 +134,7 @@ while (length(urlLine <-
     #print (nrow(dbRows))
     
     if (nrow(dbRows)==0){
-      query<-paste("INSERT INTO sourcedocuments (sourcedocumentname,sourcedocumentbaseurl,sourcedocumentfileextension1,sourcedocumentfileextension2) VALUES('",editionFileName,"','",urlLine,"','pdf','txt')",sep='')
+      query<-paste("INSERT INTO source_documents (source_document_name,source_document_base_url,source_document_file_extension_1,source_document_file_extension_2) VALUES('",editionFileName,"','",urlLine,"','pdf','txt')",sep='')
       print (query)
       rsInsert = dbSendQuery(mydb,query)
       dbClearResult(rsInsert)
@@ -140,74 +142,106 @@ while (length(urlLine <-
     
     dbClearResult(rs)
     
+    # get handle on ID    
+    query<-paste("select id_source_document from source_documents where source_document_name='",editionFileName,"'",sep='')
+    rs = dbSendQuery(mydb,query)
+    dbRows<-dbFetch(rs)
+    if (nrow(dbRows)==0){
+      print (paste("Problem: zero rows for ",query,sep=''))
+    } 
     
-    #Perform Natural Language Processing on the file
-    
-    inputEquityTextFile <-paste("c:\\a_orgs\\carleton\\hist3814\\equity\\",editionFileName,".txt",sep="")
-    
-    inputEquityTextFileCon  <- file(inputEquityTextFile, open = "r")
-    equityEditionText <-
-      paste(readLines(inputEquityTextFileCon, n = -1, warn = TRUE),
-            collapse = "\n")
-    close(inputEquityTextFileCon)
-    
-    equityEditionString <- as.String(equityEditionText)
-    
-    word_ann <- Maxent_Word_Token_Annotator()
-    sent_ann <- Maxent_Sent_Token_Annotator()
-    
-    equityEdition_annotations <-
-      annotate(equityEditionString, list(sent_ann, word_ann))
-    # class(equityEdition_annotations)
-    # head(equityEdition_annotations)
-    equityEdition_doc <-
-      AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
-    sents(equityEdition_doc)
-    
-    # This does not work for me.
-    #sents(bio_doc) %>% head(2)
-    
-    # bio = equityEditionString
-    # bio_annotations = equityEdition_annotations
-    # bio_doc = equityEdition_doc
-    
-    
-    person_ann <- Maxent_Entity_Annotator(kind = "person")
-    location_ann <- Maxent_Entity_Annotator(kind = "location")
-    organization_ann <- Maxent_Entity_Annotator(kind = "organization")
-    
-    pipeline <- list(sent_ann,
-                     word_ann,
-                     person_ann,
-                     location_ann,
-                     organization_ann)
-    equityEdition_annotations <- annotate(equityEditionString, pipeline)
-    equityEdition_doc <-
-      AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
-    
-    peopleInEdition<-sort(unique(entities(equityEdition_doc, kind = "person")))
-    topicsInEditionString<-paste(c(peopleInEdition), collapse=', ' )
-    thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-    writeLines(thisCell,outputFilePeopleHtmlCon)
-    
-    
-    locationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "location")))
-    topicsInEditionString<-paste(c(locationsInEdition), collapse=', ' )
-    thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-    writeLines(thisCell,outputFileLocationsHtmlCon)
-    
-    
-    organizationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "organization")))
-    topicsInEditionString<-paste(c(organizationsInEdition), collapse=', ' )
-    thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-    writeLines(thisCell,outputFileOrganizationsHtmlCon)
-    
-    
-    
-    
-    writeLines('</tr>', outputFilePeopleHtmlCon)
-    writeLines('</tr>', outputFileLocationsHtmlCon)
-    writeLines('</tr>', outputFileOrganizationsHtmlCon)
+    else {
+      print (dbRows[[1]])
+      id_source_document<-dbRows[[1]]
+      #Perform Natural Language Processing on the file
+      
+      inputEquityTextFile <-paste("c:\\a_orgs\\carleton\\hist3814\\equity\\",editionFileName,".txt",sep="")
+      
+      inputEquityTextFileCon  <- file(inputEquityTextFile, open = "r")
+      equityEditionText <-
+        paste(readLines(inputEquityTextFileCon, n = -1, warn = TRUE),
+              collapse = "\n")
+      close(inputEquityTextFileCon)
+      
+      equityEditionString <- as.String(equityEditionText)
+      
+      word_ann <- Maxent_Word_Token_Annotator()
+      sent_ann <- Maxent_Sent_Token_Annotator()
+      
+      equityEdition_annotations <-
+        annotate(equityEditionString, list(sent_ann, word_ann))
+      # class(equityEdition_annotations)
+      # head(equityEdition_annotations)
+      equityEdition_doc <-
+        AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
+      sents(equityEdition_doc)
+      
+      # This does not work for me.
+      #sents(bio_doc) %>% head(2)
+      
+      # bio = equityEditionString
+      # bio_annotations = equityEdition_annotations
+      # bio_doc = equityEdition_doc
+      
+      
+      person_ann <- Maxent_Entity_Annotator(kind = "person")
+      location_ann <- Maxent_Entity_Annotator(kind = "location")
+      organization_ann <- Maxent_Entity_Annotator(kind = "organization")
+      
+      pipeline <- list(sent_ann,
+                       word_ann,
+                       person_ann,
+                       location_ann,
+                       organization_ann)
+      equityEdition_annotations <- annotate(equityEditionString, pipeline)
+      equityEdition_doc <-
+        AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
+      
+      peopleInEdition<-c(sort(unique(entities(equityEdition_doc, kind = "person"))))
+      topicsInEditionString<-paste(peopleInEdition, collapse=', ' )
+      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      writeLines(thisCell,outputFilePeopleHtmlCon)
+      
+      for(person in peopleInEdition){
+        
+        #Store people into database
+        #first, check if it is already in the database
+        query<-paste("select * from entities_people where name='",gsub("'", "\'", person),"'",sep='')
+        print (query)
+        rs = dbSendQuery(mydb,query)
+        dbRows<-dbFetch(rs)
+        #dbFetch() always returns a data.frame with as many rows as records were fetched and as many columns as fields in the result set, even if the result is a single value or has one or zero rows
+        
+        if (nrow(dbRows)==0){
+          query<-paste("INSERT INTO entities_people (name) VALUES('",gsub("'", "\'", person),"')",sep='')
+          print (query)
+          rsInsert = dbSendQuery(mydb,query)
+          dbClearResult(rsInsert)
+        }
+        
+        dbClearResult(rs)
+      }
+      
+      
+      
+      locationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "location")))
+      topicsInEditionString<-paste(c(locationsInEdition), collapse=', ' )
+      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      writeLines(thisCell,outputFileLocationsHtmlCon)
+      
+      
+      organizationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "organization")))
+      topicsInEditionString<-paste(c(organizationsInEdition), collapse=', ' )
+      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      writeLines(thisCell,outputFileOrganizationsHtmlCon)
+      
+      
+      
+      
+      writeLines('</tr>', outputFilePeopleHtmlCon)
+      writeLines('</tr>', outputFileLocationsHtmlCon)
+      writeLines('</tr>', outputFileOrganizationsHtmlCon)
+    }
   }
 }
 
