@@ -10,6 +10,47 @@ library(RMySQL)
 options(java.parameters = "- Xmx1024m")
 
 
+printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table){
+  topicsInEditionString<-paste(entityInEdition, collapse=', ' )
+  thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+  writeLines(thisCell,outputFileHtmlCon)
+  
+  for(entity in entityInEdition) {
+    entitySql = gsub("'", "&apos;", entity)
+    entitySql = gsub("\n", "", entitySql)
+    entitySql = gsub("\'", "", entitySql)
+    entitySql = gsub("\\", "", entitySql, fixed=TRUE)
+    #Store people into database
+    #first, check if it is already in the database
+    query <-
+      paste("select * from ",entity_table," where name='",
+            entitySql,
+            "'",
+            sep = '')
+    print (query)
+    
+    rs = dbSendQuery(mydb, query)
+    dbRows <- dbFetch(rs)
+    #dbFetch() always returns a data.frame with as many rows as records were fetched and as many columns as fields in the result set, even if the result is a single value or has one or zero rows
+    
+    if (nrow(dbRows) == 0) {
+      query <-
+        paste(
+          "INSERT INTO ",entity_table," (name) VALUES('",
+          entitySql,
+          "')",
+          sep = ''
+        )
+      print (query)
+      rsInsert = dbSendQuery(mydb, query)
+      dbClearResult(rsInsert)
+    }
+
+    
+    dbClearResult(rs)
+  }
+}
+
 #https://www.r-bloggers.com/connecting-r-to-mysqlmariadb/
 #library(DBI)
 #mydb <- dbConnect(RMySQL::MySQL(), group = "group-name")
@@ -198,42 +239,49 @@ while (length(urlLine <-
         AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
       
       peopleInEdition<-c(sort(unique(entities(equityEdition_doc, kind = "person"))))
-      topicsInEditionString<-paste(peopleInEdition, collapse=', ' )
-      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-      writeLines(thisCell,outputFilePeopleHtmlCon)
       
-      for(person in peopleInEdition){
-        
-        #Store people into database
-        #first, check if it is already in the database
-        query<-paste("select * from entities_people where name='",gsub("'", "\'", person),"'",sep='')
-        print (query)
-        rs = dbSendQuery(mydb,query)
-        dbRows<-dbFetch(rs)
-        #dbFetch() always returns a data.frame with as many rows as records were fetched and as many columns as fields in the result set, even if the result is a single value or has one or zero rows
-        
-        if (nrow(dbRows)==0){
-          query<-paste("INSERT INTO entities_people (name) VALUES('",gsub("'", "\'", person),"')",sep='')
-          print (query)
-          rsInsert = dbSendQuery(mydb,query)
-          dbClearResult(rsInsert)
-        }
-        
-        dbClearResult(rs)
-      }
+      printAndStoreEntities(peopleInEdition,outputFilePeopleHtmlCon, "entities_people")
+      
+      # topicsInEditionString<-paste(peopleInEdition, collapse=', ' )
+      # thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      # writeLines(thisCell,outputFilePeopleHtmlCon)
+      # 
+      # for(person in peopleInEdition){
+      #   
+      #   #Store people into database
+      #   #first, check if it is already in the database
+      #   query<-paste("select * from entities_people where name='",gsub("'", "&apos;", person),"'",sep='')
+      #   print (query)
+      #   rs = dbSendQuery(mydb,query)
+      #   dbRows<-dbFetch(rs)
+      #   #dbFetch() always returns a data.frame with as many rows as records were fetched and as many columns as fields in the result set, even if the result is a single value or has one or zero rows
+      #   
+      #   if (nrow(dbRows)==0){
+      #     query<-paste("INSERT INTO entities_people (name) VALUES('",gsub("'", "&apos;", person),"')",sep='')
+      #     print (query)
+      #     rsInsert = dbSendQuery(mydb,query)
+      #     dbClearResult(rsInsert)
+      #   }
+      #   
+      #   dbClearResult(rs)
+      # }
       
       
       
       locationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "location")))
-      topicsInEditionString<-paste(c(locationsInEdition), collapse=', ' )
-      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-      writeLines(thisCell,outputFileLocationsHtmlCon)
+      printAndStoreEntities(locationsInEdition,outputFileLocationsHtmlCon, "entities_locations")
+      
+      # topicsInEditionString<-paste(c(locationsInEdition), collapse=', ' )
+      # thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      # writeLines(thisCell,outputFileLocationsHtmlCon)
       
       
       organizationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "organization")))
-      topicsInEditionString<-paste(c(organizationsInEdition), collapse=', ' )
-      thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-      writeLines(thisCell,outputFileOrganizationsHtmlCon)
+      printAndStoreEntities(organizationsInEdition,outputFileOrganizationsHtmlCon, "entities_organizations")
+      
+      # topicsInEditionString<-paste(c(organizationsInEdition), collapse=', ' )
+      # thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
+      # writeLines(thisCell,outputFileOrganizationsHtmlCon)
       
       
       
@@ -255,5 +303,6 @@ writeLines('</table></body></html>', outputFileOrganizationsHtmlCon)
 close(outputFilePeopleHtmlCon)
 close(outputFileLocationsHtmlCon)
 close(outputFileOrganizationsHtmlCon)
+
 
 

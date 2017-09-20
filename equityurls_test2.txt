@@ -2,4 +2,6 @@ http://collections.banq.qc.ca:8008/jrn03/equity/src/1883/06/07/
 http://collections.banq.qc.ca:8008/jrn03/equity/src/1883/06/14/
 http://collections.banq.qc.ca:8008/jrn03/equity/src/1883/06/21/
 
+http://collections.banq.qc.ca:8008/jrn03/equity/src/1883/06/28/
+http://collections.banq.qc.ca:8008/jrn03/equity/src/1883/07/05/
 
