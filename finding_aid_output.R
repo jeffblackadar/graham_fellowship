@@ -8,6 +8,7 @@ writeLines('<html><head><title></title></head><body><h1>List of people in the ed
 library(RMySQL)
 library(stringr)
 
+
 output_mydb = dbConnect(MySQL(), user='localuser', password=localuserpassword, dbname='corpus_entities', host='localhost')
 
 # process people.  This will become a function after this is working
@@ -34,7 +35,7 @@ if (nrow(output_dbRows)==0){
       #personFileName = gsub("/", "+", personFileName, fixed=TRUE)
       #personFileName = gsub(",", "+", personFileName, fixed=TRUE)
       #personFileName = str_replace_all(personFileName, '\\"', "++")
-      #personFileName = str_replace_all(personFileName, "¦", "+")
+      #personFileName = str_replace_all(personFileName, "?", "+")
       
       #personFileName = str_replace_all(personFileName, ",", "+")
       #personFileName = str_replace_all(personFileName, '\\t', "++")
