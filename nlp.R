@@ -7,14 +7,14 @@ library(openNLP)
 library(RWeka)
 #install.packages("RMySQL")
 library(RMySQL)
-options(java.parameters = "-Xmx4096m")
+options(java.parameters = "-Xms4096m -Xmx4096m")
 
 
 
 printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table, entity_table_id_name, entity_document_x_table, entity_document_x_table_id_name, table_id_source_document){
   topicsInEditionString<-paste(entityInEdition, collapse=', ' )
   thisCell<-paste('<td>',topicsInEditionString,'</td>',sep="")
-  writeLines(thisCell,outputFileHtmlCon)
+#  writeLines(thisCell,outputFileHtmlCon)
   
   for(entity in entityInEdition) {
     entitySql = gsub("'", "&apos;", entity)
@@ -89,6 +89,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
       }
     }
   }
+  gc()
 }
 
 #https://www.r-bloggers.com/connecting-r-to-mysqlmariadb/
@@ -131,20 +132,20 @@ inputFile <- "equityurls_1883-1999.txt"
 inputCon  <- file(inputFile, open = "r")
 
 #open connectons to wite output files
-outputFilePeopleHtml <- "equityeditions_people.html"
-outputFilePeopleHtmlCon<-file(outputFilePeopleHtml, open = "w")
-outputFileLocationsHtml <- "equityeditions_locations.html"
-outputFileLocationsHtmlCon<-file(outputFileLocationsHtml, open = "w")
-outputFileOrganizationsHtml <- "equityeditions_organizations.html"
-outputFileOrganizationsHtmlCon<-file(outputFileOrganizationsHtml, open = "w")
+#outputFilePeopleHtml <- "equityeditions_people.html"
+#outputFilePeopleHtmlCon<-file(outputFilePeopleHtml, open = "w")
+#outputFileLocationsHtml <- "equityeditions_locations.html"
+#outputFileLocationsHtmlCon<-file(outputFileLocationsHtml, open = "w")
+#outputFileOrganizationsHtml <- "equityeditions_organizations.html"
+#outputFileOrganizationsHtmlCon<-file(outputFileOrganizationsHtml, open = "w")
 
 #set up web page at top of html
-writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity</h1><h2>With people referenced.</h2><table border=1>', outputFilePeopleHtmlCon)
-writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>People</th></tr>', outputFilePeopleHtmlCon)
-writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity.</h1><h2>With locations referenced.</h2><table border=1>', outputFileLocationsHtmlCon)
-writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>Locations</th></tr>', outputFileLocationsHtmlCon)
-writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity.</h1><h2>With organizations referenced.</h2><table border=1>', outputFileOrganizationsHtmlCon)
-writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>Organizations</th></tr>', outputFileOrganizationsHtmlCon)
+#writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity</h1><h2>With people referenced.</h2><table border=1>', outputFilePeopleHtmlCon)
+#writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>People</th></tr>', outputFilePeopleHtmlCon)
+#writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity.</h1><h2>With locations referenced.</h2><table border=1>', outputFileLocationsHtmlCon)
+#writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>Locations</th></tr>', outputFileLocationsHtmlCon)
+#writeLines('<html><head><title></title></head><body><h1>Editions of the Shawville Equity.</h1><h2>With organizations referenced.</h2><table border=1>', outputFileOrganizationsHtmlCon)
+#writeLines('<tr><th>Date of<br> edition</th><th>.pdf</th><th>.txt</th><th>Organizations</th></tr>', outputFileOrganizationsHtmlCon)
 
 while (length(urlLine <-
               readLines(inputCon, n = 1, warn = FALSE)) > 0) {
@@ -188,23 +189,23 @@ while (length(urlLine <-
     #set file name, make it look like this: 83471_1920-06-10.pdf
     if (length(urlLineElements[[1]])==10){
       #editions with dates like these (/2010/08/25/01/) are supplements  
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFilePeopleHtmlCon)
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFileLocationsHtmlCon)
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFileOrganizationsHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFilePeopleHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFileLocationsHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),' (sup.)','</a></td>',sep=""),outputFileOrganizationsHtmlCon)
       editionFileName<-paste('83471_',urlLineElements[[1]][7],'-',urlLineElements[[1]][8],'-',urlLineElements[[1]][9],'-',urlLineElements[[1]][10],sep='')  
     } else {
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFilePeopleHtmlCon)
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFileLocationsHtmlCon)
-      writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFileOrganizationsHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFilePeopleHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFileLocationsHtmlCon)
+      #writeLines(paste('<td><a href="',urlLine,'">',format(dateOfEdition,format='%Y/%m/%d'),'</a></td>',sep=""),outputFileOrganizationsHtmlCon)
       editionFileName<-paste('83471_',urlLineElements[[1]][7],'-',urlLineElements[[1]][8],'-',urlLineElements[[1]][9],sep='')        
     }
     
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFilePeopleHtmlCon)
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFilePeopleHtmlCon)
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFileLocationsHtmlCon)
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFileLocationsHtmlCon)
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFileOrganizationsHtmlCon)
-    writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFileOrganizationsHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFilePeopleHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFilePeopleHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFileLocationsHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFileLocationsHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.pdf">.pdf</a></td>',sep=""),outputFileOrganizationsHtmlCon)
+    #writeLines(paste('<td><a href="',urlLine,editionFileName,'.txt">.txt</a></td>',sep=""),outputFileOrganizationsHtmlCon)
     
     #Store equity edition into database
     #first, check if it is already in the database
@@ -285,30 +286,34 @@ while (length(urlLine <-
         printAndStoreEntities(organizationsInEdition,outputFileOrganizationsHtmlCon, "entities_organizations", "id_entities_organization", "organizations_x_sourcedocuments", "id_entities_organization",id_source_document)
         
         
-        writeLines('</tr>', outputFilePeopleHtmlCon)
-        writeLines('</tr>', outputFileLocationsHtmlCon)
-        writeLines('</tr>', outputFileOrganizationsHtmlCon)
+        #writeLines('</tr>', outputFilePeopleHtmlCon)
+        #writeLines('</tr>', outputFileLocationsHtmlCon)
+        #writeLines('</tr>', outputFileOrganizationsHtmlCon)
         
         #Now that the processing is complete, update the row in source_documents to indicate that.
         query<-paste("update source_documents SET source_document_processed=1 where id_source_document =",id_source_document,"",sep='')
         rs = dbSendQuery(mydb,query)
         print(query)
+        
       }
     }
   }
+  objectsToKeep<-c("localuserpassword","inputCon", "mydb","urlLine","entities","printAndStoreEntities" )
+  rm(list=setdiff(ls(),objectsToKeep ))
+  gc()
 }
 
 
 close(inputCon)
 dbDisconnect(mydb)
 
-writeLines('</table></body></html>', outputFilePeopleHtmlCon)
-writeLines('</table></body></html>', outputFileLocationsHtmlCon)
-writeLines('</table></body></html>', outputFileOrganizationsHtmlCon)
+#writeLines('</table></body></html>', outputFilePeopleHtmlCon)
+#writeLines('</table></body></html>', outputFileLocationsHtmlCon)
+#writeLines('</table></body></html>', outputFileOrganizationsHtmlCon)
 close(outputFilePeopleHtmlCon)
 close(outputFileLocationsHtmlCon)
 close(outputFileOrganizationsHtmlCon)
 
 
-
+gc()
 
