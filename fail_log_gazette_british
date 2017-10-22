@@ -1,3 +1,6 @@
+#Spelling correction
+http://www.sumsar.net/blog/2014/12/peter-norvigs-spell-checker-in-two-lines-of-r/
+
 #British Gazette
 I want to pull some info from the British Gazette
 
@@ -47,6 +50,9 @@ http://www.xpdfreader.com/download.html
 Look under
 
 Download the Xpdf tools:
+
+I unzipped it here
+exe <- "C:\\a_orgs\\carleton\\hist3814\\R\\graham_fellowship\\pdftools\\bin64\\pdftotext.exe"
 
 #credit where credit is due, because I am sometimes forgetful
 http://www.r-tutor.com/r-introduction/list
