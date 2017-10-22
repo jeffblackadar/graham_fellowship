@@ -1,0 +1,22 @@
+#British Gazette
+I want to pull some info from the British Gazette
+
+Here is the API
+
+https://github.com/TheGazette/DevDocs/blob/master/notice/notice-feed.md
+
+I think I can use the API to search, pull in results, deal with those results and get some insight.
+
+I'm looking at allotment gardens
+
+One I pull this in I can use R for NLP to get name and location of allotments?
+
+I think I want this data as json
+
+According to
+
+https://stackoverflow.com/questions/2617600/importing-data-from-a-json-file-into-r
+
+I should use rjson (although there are other libraries too.)
+
+install.packages("rjson")
