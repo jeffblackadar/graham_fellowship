@@ -1,3 +1,6 @@
+#Spelling correction
+http://www.sumsar.net/blog/2014/12/peter-norvigs-spell-checker-in-two-lines-of-r/
+
 #British Gazette
 I want to pull some info from the British Gazette
 
@@ -20,3 +23,37 @@ https://stackoverflow.com/questions/2617600/importing-data-from-a-json-file-into
 I should use rjson (although there are other libraries too.)
 
 install.packages("rjson")
+
+-- I got errors with the json
+
+> json_file <- "https://www.thegazette.co.uk/all-notices/notice/data.json?end-publish-date=1918-11-11&text=potatoes+wart+schedule&start-publish-date=1914-08-03&location-distance-1=1&service=all-notices&categorycode-all=all&numberOfLocationSearches=1"
+> json_data <- fromJSON(file=json_file)
+Error in fromJSON(file = json_file) : unexpected character: "
+
+So I switched to xml
+
+Helpful tutorial
+
+http://statistics.berkeley.edu/computing/r-reading-webpages
+
+## can read in only 10 pages at a time
+Note the page.number page.size page.start page.stop
+
+                                                                                             id
+1 https://www.thegazette.co.uk/all-notices/notice/data.feed?end-publish-date=1918-11-11&text=potatoes wart schedule&start-publish-date=1914-08-03&location-distance-1=1&service=all-notices&categorycode-all=all&numberOfLocationSearches=1&results-page=20
+  link link.1 link.2 link.3 link.4 link.5         title                       updated Query page.number page.size page.start page.stop total facets
+1 NULL   NULL   NULL   NULL   NULL   NULL Search Result 2017-10-22T15:17:45.608+01:00  NULL          20        10        191       194   194   NULL
+
+Get
+
+http://www.xpdfreader.com/download.html
+Look under
+
+Download the Xpdf tools:
+
+I unzipped it here
+exe <- "C:\\a_orgs\\carleton\\hist3814\\R\\graham_fellowship\\pdftools\\bin64\\pdftotext.exe"
+
+#credit where credit is due, because I am sometimes forgetful
+http://www.r-tutor.com/r-introduction/list
+https://www.r-bloggers.com/how-to-write-the-first-for-loop-in-r/
