@@ -1,3 +1,10 @@
+
+
+
+outputFileCsv <- "gazette_potato_wart.csv"
+outputFileCsvCon<-file(outputFileCsv, open = "w")
+
+
 library(XML)
 xml_file <- "https://www.thegazette.co.uk/all-notices/notice/data.feed?end-publish-date=1918-11-11&text=potatoes+wart+schedule&start-publish-date=1914-08-03&location-distance-1=1&service=all-notices&categorycode-all=all&numberOfLocationSearches=1&results-page=20"
 xmlfile <- xmlTreeParse(readLines(xml_file)[1])
@@ -33,49 +40,85 @@ if(totalPagesReturned>0){
       }else{
         entriesCounterName=paste(".",entriesCounter,sep="")
       }
+      
+      entry<-xml_df[paste("entry",entriesCounterName,sep="")]
+      
+      #entry<-xml_df$entry.2[1]
+      entryId<-entry[[1,1]]$id
+      print(paste("ID:",entryId,sep=""))
+      
+      entryTitle<-entry[[1,1]]$title
+      print(paste("Title:",entryTitle,sep=""))
+      
+      entryUpdated<-entry[[1,1]]$updated
+      print(paste("updated:",entryUpdated,sep=""))
+      
+      entryPublished<-entry[[1,1]]$published
+      print(paste("Published:",entryPublished,sep=""))
+      
+      #now get the pdf of the page,convert it to text
+      url <- paste(entry[[1,1]]$id,"/data.pdf",sep="")
+      #dest <- tempfile(fileext = ".pdf")
+      dest<-paste("C:\\a_orgs\\carleton\\hist3814\\R\\graham_fellowship\\gazette_files\\",gsub(":", "-", gsub("/", "-", entry[[1,1]]$id)),".pdf",sep="")
+      
+      download.file(url,dest , mode = "wb")
+      
+      # set path to pdftotxt.exe and convert pdf to text
+      
+      exe <- "C:\\a_orgs\\carleton\\hist3814\\R\\graham_fellowship\\pdftools\\bin64\\pdftotext.exe"
+      system(paste("\"", exe, "\" \"", dest, "\"", sep = ""), wait = F)
+      
+      
+            # get txt-file name and open it
+      filetxt <- sub(".pdf", ".txt", dest)
+      
+      while(!file.exists(filetxt)){
+        #wait until file exists
+      }
+      
+      #shell.exec(filetxt); shell.exec(filetxt) # strangely the first try always throws an error..
+      
+      
+      library(tm)
+      
+      txt <- readLines(filetxt) # don't mind warning..
+      
+      #loop through each instance of schedule
+      noticeText<-""
+      pos = grep('SCHEDULE', txt)
+      for(found in pos){
+        print (txt[found])
+        noticeText<-txt[found]
+        if(length(txt)>found){
+          print(txt[found+1])
+          noticeText<-paste(noticeText,txt[found+1],sep="")
+          }
+        if(length(txt)>found+1){
+          print(txt[found+2])
+          noticeText<-paste(noticeText,txt[found+2],sep="")
+        }
         
-    entry<-xml_df[paste("entry",entriesCounterName,sep="")]
-    
-    #entry<-xml_df$entry.2[1]
-    print(paste("ID:",entry[[1,1]]$id,sep=""))
-    print(paste("Title:",entry[[1,1]]$title,sep=""))
-    print(paste("updated:",entry[[1,1]]$updated,sep=""))
-    print(paste("Published:",entry[[1,1]]$published,sep=""))
-    
-    #now get the pdf of the page,convert it to text
-    url <- paste(entry[[1,1]]$id,"/data.pdf",sep="")
-    dest <- tempfile(fileext = ".pdf")
-    download.file(url, dest, mode = "wb")
-    
-    # set path to pdftotxt.exe and convert pdf to text
-    
-    exe <- "C:\\a_orgs\\carleton\\hist3814\\R\\graham_fellowship\\pdftools\\bin64\\pdftotext.exe"
-    system(paste("\"", exe, "\" \"", dest, "\"", sep = ""), wait = F)
-    
-    # get txt-file name and open it
-    filetxt <- sub(".pdf", ".txt", dest)
-    shell.exec(filetxt); shell.exec(filetxt) # strangely the first try always throws an error..
-    
-    
-    library(tm)
-    
-    txt <- readLines(filetxt) # don't mind warning..
-    
-    # thanks to https://stackoverflow.com/questions/1174799/how-to-make-execution-pause-sleep-wait-for-x-seconds-in-r
-    # wait 2 seconds - don't stress the server
-    p1 <- proc.time()
-    Sys.sleep(2)
-    proc.time() - p1
-    
-    
+        writeLines(paste("\"",entryId,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",noticeText,"\"",sep=""),outputFileCsvCon)
+        
+        
+      }
+      
+      
+      pos# thanks to https://stackoverflow.com/questions/1174799/how-to-make-execution-pause-sleep-wait-for-x-seconds-in-r
+      # wait 2 seconds - don't stress the server
+      p1 <- proc.time()
+      Sys.sleep(2)
+      proc.time() - p1
+      
+      
     }
   }
-
+  
 }else{
   print("no pages found")
 }
-  
 
+close(outputFileCsvCon)
 
 #xml_df
 # 
