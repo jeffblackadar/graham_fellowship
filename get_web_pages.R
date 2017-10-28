@@ -14,8 +14,56 @@ generateFootNote<-function(articleTitle,newspaperName, editionDate, ArchiveName,
   return(paste(articleTitle,", ",newspaperName,", ", editionDate,", ", ArchiveName,", ",articleURL,", Accessed ", format(Sys.Date(), "%b %d %Y"),sep=""))
 }
 
+# Extract entities from an AnnotatedPlainTextDocument
+entities <- function(doc, kind) {
+  s <- doc$content
+  a <- annotations(doc)[[1]]
+  if (hasArg(kind)) {
+    k <- sapply(a$features, `[[`, "kind")
+    s[a[k == kind]]
+  } else {
+    s[a[a$type == "entity"]]
+  }
+}
+
+getEntitiesInText<-function(rawText){
+  library(NLP)
+  library(openNLP)
+  library(RWeka)
+  
+  print(1)
+  word_ann <- Maxent_Word_Token_Annotator()
+  sent_ann <- Maxent_Sent_Token_Annotator()
+  print(2)
+  if (!rawText==""){
+    #print(rawText)
+    article_annotations <-  annotate(rawText, list(sent_ann, word_ann))
+    article_doc <-AnnotatedPlainTextDocument(rawText, article_annotations)
+    sents(article_doc)
+    
+    person_ann <- Maxent_Entity_Annotator(kind = "person")
+    location_ann <- Maxent_Entity_Annotator(kind = "location")
+    organization_ann <- Maxent_Entity_Annotator(kind = "organization")
+    
+    pipeline <- list(sent_ann, word_ann, person_ann, location_ann, organization_ann)
+    article_annotations <- annotate(rawText, pipeline)
+    article_doc <-  AnnotatedPlainTextDocument(rawText, article_annotations)
+    
+    
+    peopleIn<-sort(unique(entities(article_doc, kind = "person")))
+    locationsIn<-sort(unique(entities(article_doc, kind = "location")))
+    organizationsIn<-sort(unique(entities(article_doc, kind = "organization")))
+
+    
+    return(c(peopleIn,locationsIn, organizationsIn))
+  } else
+    # empty text - return nothing
+    return(c("","",""))
+}
+
+
 # function dowloads the text of an individual article
-processArticleWebPage<-function(articleURL, articleTitle, articleID){
+processArticleWebPage<-function(articleURL, articleTitle, articleID, articleDate){
   theArticlepage = readLines(articleURL)
   # get rid of the tabs
   theArticlepage = trimws(gsub("\t"," ",theArticlepage))
@@ -24,6 +72,8 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID){
   findLine = paste("<span itemprop=\"name\">",articleTitle,"</span>",sep="")
   print(findLine)
   print(articleURL)
+  
+  
   
   # find number of results
   for (articleLinesCounter in 1:length(theArticlepage)){
@@ -39,7 +89,7 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID){
       
       repeat{
         articleLinesCounter=articleLinesCounter+1
-        if(theArticlepage[articleLinesCounter]=="</span>"){
+        if(theArticlepage[articleLinesCounter]=="</p>"){
           break
         }
         articleText=paste(articleText,theArticlepage[articleLinesCounter],sep="")
@@ -53,13 +103,30 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID){
   outputFileHTMLCon<-file(paste(workingSubDirectory,"/",outputFileHTML,sep=""), open = "w")
   
   writeLines(paste("<h1>",articleTitle,"</h1>",sep=""),outputFileHTMLCon)
+  writeLines(paste("<p>published: ",articleDate,"</p>",sep=""),outputFileHTMLCon)
   writeLines(paste("<a href=\"",articleURL,"\">",articleURL,"</a><p>",sep=""),outputFileHTMLCon)
+  
+  entities<-getEntitiesInText(articleText)
+  writeLines("<p>people: ",outputFileHTMLCon)
+  for (ent in entities[1]){
+    writeLines(ent,outputFileHTMLCon)
+  }
+  writeLines("<p>locations: ",outputFileHTMLCon)
+  for (ent in entities[2]){
+    writeLines(ent,outputFileHTMLCon)
+  }  
+  writeLines("<p>organizations: ",outputFileHTMLCon)
+  for (ent in entities[3]){
+    writeLines(ent,outputFileHTMLCon)
+  }  
+  writeLines("<p>",outputFileHTMLCon)
+  
   writeLines(articleText,outputFileHTMLCon)
   close(outputFileHTMLCon)
   
   # wait 5 seconds - don't stress the server
   p1 <- proc.time()
-  Sys.sleep(5)
+  Sys.sleep(2)
   proc.time() - p1
   
   
@@ -105,7 +172,7 @@ for (entriesCounter in 1:550){
 
 entriesProcessed = 0
 # go through each page of search results
- #for(gatherPagesCounter in 84:(floor(numberResults/12)+1)){
+#for(gatherPagesCounter in 84:(floor(numberResults/12)+1)){
 for(gatherPagesCounter in 1:3){
   
   thepage = readLines(paste(searchURL,"&page=",gatherPagesCounter,sep=""))
@@ -146,11 +213,16 @@ for(gatherPagesCounter in 1:3){
       footNote=generateFootNote(entryTitle,entryPaperTitle, entryPublished, newspaperArchiveName, entryUrl)
       lineOut<-paste(entriesProcessed,",\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",noticeText,"\"",sep="")
       print (lineOut)
-      articleFile=processArticleWebPage(entryUrl, entryTitle, entryId)
+      articleFile=processArticleWebPage(entryUrl, entryTitle, entryId,entryPublished)
       
       writeLines(lineOut,outputFileCsvCon)
       
       writeLines(paste(entriesProcessed," <a href=\"",articleFile,"\">",articleFile,"</a> ",entryTitle," <a href=\"",entryUrl,"\">",entryUrl,"</a><br>",sep=""),outputFileHTMLListCon)
+      
+      #clean up memory, the NLP work is memory intensive.  Keep the objects we need, including functions
+      objectsToKeep<-c("localuserpassword","gatherPagesCounter","entriesCounter","entities","thepage","searchURL", "workingSubDirectory","processArticleWebPage","generateFootNote","getEntitiesInText","outputFileCsvCon","outputFileHTMLListCon","entriesProcessed","newspaperArchiveName")
+      rm(list=setdiff(ls(),objectsToKeep ))
+      gc()
     }
   }
   
@@ -159,7 +231,11 @@ for(gatherPagesCounter in 1:3){
   p1 <- proc.time()
   Sys.sleep(3)
   proc.time() - p1
+  
+  
 }
 
 close(outputFileCsvCon)
 close(outputFileHTMLListCon)
+
+
