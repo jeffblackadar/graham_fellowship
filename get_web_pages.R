@@ -1,11 +1,91 @@
 
-outputFileCsv <- "wales_papers.csv"
+# generates a footnote close to the Chicago style - each footnote will need editing for italics, spelling and punctuation.
+generateFootNote<-function(articleTitle,newspaperName, editionDate, ArchiveName, articleURL){
+  
+  # Example from 
+  # Chicago-Style Citation for Assignments in History: Notes & Bibliography Format (2015-2016)
+  #“The Coming of Calgary: The Future Chicago of Western Canada,” The Times, January 25,
+  #1912, The Times Digital Archive 1785-1985.
+  
+  return(paste(articleTitle,", ",newspaperName,", ", editionDate,", ", ArchiveName,", ",articleURL,", Accessed ", format(Sys.Date(), "%b %d %Y"),sep=""))
+  
+}
+
+
+processArticleWebPage<-function(articleURL, articleTitle, articleID){
+  theArticlepage = readLines(articleURL)
+  # get rid of the tabs
+  theArticlepage = trimws(gsub("\t"," ",theArticlepage))
+  articleText=""
+  #look for something like: <span itemprop="name">OUR MILITARY COLUMN</span>
+  findLine = paste("<span itemprop=\"name\">",articleTitle,"</span>",sep="")
+  print(findLine)
+  print(articleURL)
+  
+  # find number of results
+  for (articleLinesCounter in 1:length(theArticlepage)){
+    #print(paste(articleLinesCounter,theArticlepage[articleLinesCounter],sep=""))
+    if(theArticlepage[articleLinesCounter] == findLine){
+      
+      repeat{
+        articleLinesCounter=articleLinesCounter+1
+        if(theArticlepage[articleLinesCounter]=="<span itemprop=\"articleBody\">"){
+          break
+        }
+      }
+      
+      repeat{
+        articleLinesCounter=articleLinesCounter+1
+        if(theArticlepage[articleLinesCounter]=="</span>"){
+          break
+        }
+        articleText=paste(articleText,theArticlepage[articleLinesCounter],sep="")
+      }
+      #found the article, breaking out
+      articleLinesCounter=length(theArticlepage)
+    }
+  }
+  # write the article to a file
+  outputFileHTML <- paste("wales/",gsub("/","-",articleID),".htm",sep="")
+  outputFileHTMLCon<-file(outputFileHTML, open = "w")
+  
+  writeLines(paste("<h1>",articleTitle,"</h1>",sep=""),outputFileHTMLCon)
+  writeLines(paste("<a href=\"",articleURL,"\">",articleURL,"</a><p>",sep=""),outputFileHTMLCon)
+  writeLines(articleText,outputFileHTMLCon)
+  close(outputFileHTMLCon)
+  
+  # wait 5 seconds - don't stress the server
+  p1 <- proc.time()
+  Sys.sleep(5)
+  proc.time() - p1
+  
+  
+  return(outputFileHTML)
+}
+
+
+searchDateRangeMin = "1914-08-03"
+searchDateRangeMax = "1918-11-20"
+searchDateRange = paste("&range%5Bmin%5D=",searchDateRangeMin,"T00%3A00%3A00Z&range%5Bmax%5D=",searchDateRangeMax,"T00%3A00%3A00Z",sep="")
+searchBaseURL = "http://newspapers.library.wales/"
+searchTerms = paste("search?alt=full_text%3A%22","allotment","%22+","AND","+full_text%3A%22","society","%22+","OR","+full_text%3A%22","societies","%22",sep="")
+searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
+
+newspaperArchiveName = "National Library of Wales, Welsh Newspapers Online"
+
+
+outputFileCsv <- "wales/1wales_papers2.csv"
 outputFileCsvCon<-file(outputFileCsv, open = "w")
+outputFileHTMLList <- "wales/wales_papers2.html"
+outputFileHTMLListCon<-file(outputFileHTMLList, open = "w")
+
+
 
 #thanks to
 #https://statistics.berkeley.edu/computing/r-reading-webpages
 
-thepage = readLines("http://newspapers.library.wales/search?alt=full_text%3A%22allotment%22+AND+full_text%3A%22society%22+OR+full_text%3A%22societies%22&range%5Bmin%5D=1914-08-03T00%3A00%3A00Z&range%5Bmax%5D=1918-11-20T00%3A00%3A00Z")
+
+thepage = readLines(searchURL)
 # get rid of the tabs
 thepage = trimws(gsub("\t"," ",thepage))
 
@@ -25,14 +105,13 @@ for (entriesCounter in 1:550){
 
 
 #for(gatherPagesCounter in 1:(floor(numberResults/10))+1){
-for(gatherPagesCounter in 1:99){
+for(gatherPagesCounter in 1:3){
   
-  thepage = readLines(paste("http://newspapers.library.wales/search?alt=full_text%3A%22allotment%22+AND+full_text%3A%22society%22+OR+full_text%3A%22societies%22&range%5Bmin%5D=1914-08-03T00%3A00%3A00Z&range%5Bmax%5D=1918-11-20T00%3A00%3A00Z","&page=",gatherPagesCounter,sep=""))
+  thepage = readLines(paste(searchURL,"&page=",gatherPagesCounter,sep=""))
   # get rid of the tabs
   thepage = trimws(gsub("\t"," ",thepage))
   
-  
-  for (entriesCounter in 900:1573){
+  for (entriesCounter in 900:length(thepage)){
     #print(paste(entriesCounter,thepage[entriesCounter],sep=""))
     if(thepage[entriesCounter] == '<h2 class=\"result-title\">')  {
       # url
@@ -55,26 +134,31 @@ for(gatherPagesCounter in 1:99){
       
       # date
       
-      entryPublished = trimws(gsub("</span>","",thepage[entriesCounter+8]))
+      entryPublished = trimws(gsub("\"","",gsub("</span>","",thepage[entriesCounter+8])))
       print(entryPublished)
       #page 
       
-      entryPage=trimws(gsub("</li>","",thepage[entriesCounter+13]))
+      entryPage=trimws(gsub("\"","",gsub("</li>","",thepage[entriesCounter+13])))
       print(entryPage)
       entryUpdated=""
+      
       noticeText=""
-      writeLines(paste("\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",noticeText,"\"",sep=""),outputFileCsvCon)
+      footNote=generateFootNote(entryTitle,entryPaperTitle, entryPublished, newspaperArchiveName, entryUrl)
+      lineOut<-paste("\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",noticeText,"\"",sep="")
+      print (lineOut)
+      articleFile=processArticleWebPage(entryUrl, entryTitle, entryId)
+      
+      writeLines(lineOut,outputFileCsvCon)
+      writeLines(paste("<a href=\"",articleFile,"\"</a><a href=\"",entryUrl,"\"</a>",sep=""),outputFileHTMLListCon)
     }
   }
   
-  
-  
   # thanks to https://stackoverflow.com/questions/1174799/how-to-make-execution-pause-sleep-wait-for-x-seconds-in-r
-  # wait 2 seconds - don't stress the server
+  # wait 3 seconds - don't stress the server
   p1 <- proc.time()
-  Sys.sleep(5)
+  Sys.sleep(3)
   proc.time() - p1
 }
 
 close(outputFileCsvCon)
-
+close(outputFileHTMLListCon)
