@@ -15,7 +15,7 @@ totalPagesReturned<-as.integer(xml_df$total)
 if(totalPagesReturned>0){
   #read in 10 pages at a time
   for(gatherPagesCounter in 0:(floor(totalPagesReturned/10))+1){
-  # for now, so that I donw stress out the server I am getting only the first pages
+  # for now, so that I don't stress out the server I am getting only the first pages
   #for(gatherPagesCounter in 0:0+1){
     print (gatherPagesCounter)
     

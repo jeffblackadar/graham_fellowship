@@ -123,8 +123,8 @@ entities <- function(doc, kind) {
 }
 
 #openconnecton to read file
-#inputFile <- "equityurls.txt"
-inputFile <- "equityurls_1883-1999.txt"
+inputFile <- "equityurls.txt"
+#inputFile <- "equityurls_1883-1999.txt"
 #using a shorter test file, each edition takes a long time.
 #inputFile <- "equityurls_1970-08.txt"
 #inputFile <- "equityurls_test2.txt"
