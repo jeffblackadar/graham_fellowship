@@ -1,5 +1,9 @@
 
-# generates a footnote close to the Chicago style - each footnote will need editing for italics, spelling and punctuation.
+# to run this, make a directory called wales in your working directory (or change below)
+workingSubDirectory = "wales2"
+
+### functions
+# function generates a footnote close to the Chicago style - each footnote will need editing for italics, spelling and punctuation.
 generateFootNote<-function(articleTitle,newspaperName, editionDate, ArchiveName, articleURL){
   
   # Example from 
@@ -8,10 +12,9 @@ generateFootNote<-function(articleTitle,newspaperName, editionDate, ArchiveName,
   #1912, The Times Digital Archive 1785-1985.
   
   return(paste(articleTitle,", ",newspaperName,", ", editionDate,", ", ArchiveName,", ",articleURL,", Accessed ", format(Sys.Date(), "%b %d %Y"),sep=""))
-  
 }
 
-
+# function dowloads the text of an individual article
 processArticleWebPage<-function(articleURL, articleTitle, articleID){
   theArticlepage = readLines(articleURL)
   # get rid of the tabs
@@ -46,8 +49,8 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID){
     }
   }
   # write the article to a file
-  outputFileHTML <- paste("wales/",gsub("/","-",articleID),".htm",sep="")
-  outputFileHTMLCon<-file(outputFileHTML, open = "w")
+  outputFileHTML <- paste(gsub("/","-",articleID),".htm",sep="")
+  outputFileHTMLCon<-file(paste(workingSubDirectory,"/",outputFileHTML,sep=""), open = "w")
   
   writeLines(paste("<h1>",articleTitle,"</h1>",sep=""),outputFileHTMLCon)
   writeLines(paste("<a href=\"",articleURL,"\">",articleURL,"</a><p>",sep=""),outputFileHTMLCon)
@@ -63,23 +66,20 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID){
   return(outputFileHTML)
 }
 
-
 searchDateRangeMin = "1914-08-03"
 searchDateRangeMax = "1918-11-20"
 searchDateRange = paste("&range%5Bmin%5D=",searchDateRangeMin,"T00%3A00%3A00Z&range%5Bmax%5D=",searchDateRangeMax,"T00%3A00%3A00Z",sep="")
 searchBaseURL = "http://newspapers.library.wales/"
 searchTerms = paste("search?alt=full_text%3A%22","allotment","%22+","AND","+full_text%3A%22","society","%22+","OR","+full_text%3A%22","societies","%22",sep="")
 searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
+print(searchURL) 
 
 newspaperArchiveName = "National Library of Wales, Welsh Newspapers Online"
 
-
-outputFileCsv <- "wales/1wales_papers2.csv"
+outputFileCsv <- paste(workingSubDirectory,"/1",workingSubDirectory,"_papers.csv",sep="")
 outputFileCsvCon<-file(outputFileCsv, open = "w")
-outputFileHTMLList <- "wales/wales_papers2.html"
+outputFileHTMLList <- paste(workingSubDirectory,"/1",workingSubDirectory,"_papers.html",sep="")
 outputFileHTMLListCon<-file(outputFileHTMLList, open = "w")
-
-
 
 #thanks to
 #https://statistics.berkeley.edu/computing/r-reading-webpages
@@ -103,8 +103,9 @@ for (entriesCounter in 1:550){
   }
 }
 
-
-#for(gatherPagesCounter in 1:(floor(numberResults/10))+1){
+entriesProcessed = 0
+# go through each page of search results
+ #for(gatherPagesCounter in 84:(floor(numberResults/12)+1)){
 for(gatherPagesCounter in 1:3){
   
   thepage = readLines(paste(searchURL,"&page=",gatherPagesCounter,sep=""))
@@ -127,29 +128,29 @@ for(gatherPagesCounter in 1:3){
       
       print(thepage[entriesCounter+2])
       
+      # title
       entryPaperTitle = trimws(gsub("</a>","",thepage[entriesCounter+3]))
       print(entryPaperTitle)
       
-      # title
-      
       # date
-      
       entryPublished = trimws(gsub("\"","",gsub("</span>","",thepage[entriesCounter+8])))
       print(entryPublished)
-      #page 
       
+      # page
       entryPage=trimws(gsub("\"","",gsub("</li>","",thepage[entriesCounter+13])))
       print(entryPage)
       entryUpdated=""
       
       noticeText=""
+      entriesProcessed = entriesProcessed+1
       footNote=generateFootNote(entryTitle,entryPaperTitle, entryPublished, newspaperArchiveName, entryUrl)
-      lineOut<-paste("\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",noticeText,"\"",sep="")
+      lineOut<-paste(entriesProcessed,",\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",noticeText,"\"",sep="")
       print (lineOut)
       articleFile=processArticleWebPage(entryUrl, entryTitle, entryId)
       
       writeLines(lineOut,outputFileCsvCon)
-      writeLines(paste("<a href=\"",articleFile,"\"</a><a href=\"",entryUrl,"\"</a>",sep=""),outputFileHTMLListCon)
+      
+      writeLines(paste(entriesProcessed," <a href=\"",articleFile,"\">",articleFile,"</a> ",entryTitle," <a href=\"",entryUrl,"\">",entryUrl,"</a><br>",sep=""),outputFileHTMLListCon)
     }
   }
   
