@@ -1,6 +1,33 @@
 
-# to run this, make a directory called wales in your working directory (or change below)
-workingSubDirectory = "wales2"
+# to run this, in your R working directory make a directory that matches the variable "workingSubDirectory" (or change below)
+
+setwd("C:/a_orgs/carleton/hist3814/R/graham_fellowship")
+newspaperArchiveName = "National Library of Wales, Welsh Newspapers Online"
+searchBaseURL = "http://newspapers.library.wales/"
+searchDateRangeMin = "1914-08-03"
+searchDateRangeMax = "1918-11-20"
+searchDateRange = paste("&range%5Bmin%5D=",searchDateRangeMin,"T00%3A00%3A00Z&range%5Bmax%5D=",searchDateRangeMax,"T00%3A00%3A00Z",sep="")
+
+# searchTerms = paste("search?alt=full_text%3A%22","allotment","%22+","AND","+full_text%3A%22","society","%22+","OR","+full_text%3A%22","societies","%22",sep="")
+# searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
+# print(searchURL) 
+# workingSubDirectory = "wales2"
+
+#food production societies
+#?alt=full_text%3A"Food+Production+society"+OR+full_text%3A"Food+Production+societies"
+searchTerms = paste("search?alt=full_text%3A","%22Food+Production+society%22","OR","+full_text%3A","%22Food+Production+societies%22",sep="")
+searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
+print(searchURL)
+workingSubDirectory = "hist4500_food_production_societies"
+
+#hist4500-royal-horticultural-society
+# searchTerms = paste("search?alt=full_text%3A","%22royal+horticultural+society%22",sep="")
+# searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
+# print(searchURL) 
+# workingSubDirectory = "hist4500-royal-horticultural-society"
+
+
+
 
 ### functions
 # function generates a footnote close to the Chicago style - each footnote will need editing for italics, spelling and punctuation.
@@ -65,6 +92,12 @@ getEntitiesInText<-function(rawText){
 # function dowloads the text of an individual article
 processArticleWebPage<-function(articleURL, articleTitle, articleID, articleDate){
   theArticlepage = readLines(articleURL)
+  
+  # wait 5 seconds - don't stress the server
+  p1 <- proc.time()
+  Sys.sleep(2)
+  proc.time() - p1
+  
   # get rid of the tabs
   theArticlepage = trimws(gsub("\t"," ",theArticlepage))
   articleText=""
@@ -73,9 +106,6 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID, articleDate
   print(findLine)
   print(articleURL)
   
-  
-  
-  # find number of results
   for (articleLinesCounter in 1:length(theArticlepage)){
     #print(paste(articleLinesCounter,theArticlepage[articleLinesCounter],sep=""))
     if(theArticlepage[articleLinesCounter] == findLine){
@@ -124,27 +154,22 @@ processArticleWebPage<-function(articleURL, articleTitle, articleID, articleDate
   writeLines(articleText,outputFileHTMLCon)
   close(outputFileHTMLCon)
   
-  # wait 5 seconds - don't stress the server
-  p1 <- proc.time()
-  Sys.sleep(2)
-  proc.time() - p1
+  shortArticleText<-articleText
+  if(nchar(shortArticleText)>99){
+    shortArticleText=substr(shortArticleText,1,99)
+  }
   
-  
-  return(outputFileHTML)
+  return(c(outputFileHTML,shortArticleText))
 }
 
-searchDateRangeMin = "1914-08-03"
-searchDateRangeMax = "1918-11-20"
-searchDateRange = paste("&range%5Bmin%5D=",searchDateRangeMin,"T00%3A00%3A00Z&range%5Bmax%5D=",searchDateRangeMax,"T00%3A00%3A00Z",sep="")
-searchBaseURL = "http://newspapers.library.wales/"
-searchTerms = paste("search?alt=full_text%3A%22","allotment","%22+","AND","+full_text%3A%22","society","%22+","OR","+full_text%3A%22","societies","%22",sep="")
-searchURL = paste(searchBaseURL,searchTerms,searchDateRange,sep="")
-print(searchURL) 
 
-newspaperArchiveName = "National Library of Wales, Welsh Newspapers Online"
 
 outputFileCsv <- paste(workingSubDirectory,"/1",workingSubDirectory,"_papers.csv",sep="")
 outputFileCsvCon<-file(outputFileCsv, open = "w")
+lineOut<-paste("Entry Number","\",\"","Entry Id","\"","Entry Url","\",\"", "Newspaper Title","\",\"","Article Title","\",\"","Entry Updated","\",\"","Date Published","\",\"","Page Number","\",\"","Citation","\",\"","Article start","\",\"","Notice Text","\"",sep="")
+writeLines(lineOut,outputFileCsvCon)
+
+
 outputFileHTMLList <- paste(workingSubDirectory,"/1",workingSubDirectory,"_papers.html",sep="")
 outputFileHTMLListCon<-file(outputFileHTMLList, open = "w")
 
@@ -172,14 +197,14 @@ for (entriesCounter in 1:550){
 
 entriesProcessed = 0
 # go through each page of search results
-#for(gatherPagesCounter in 84:(floor(numberResults/12)+1)){
-for(gatherPagesCounter in 1:3){
+for(gatherPagesCounter in 1:(floor(numberResults/12)+1)){
+#for(gatherPagesCounter in 1:3){
   
   thepage = readLines(paste(searchURL,"&page=",gatherPagesCounter,sep=""))
   # get rid of the tabs
   thepage = trimws(gsub("\t"," ",thepage))
   
-  for (entriesCounter in 900:length(thepage)){
+  for (entriesCounter in 500:length(thepage)){
     #print(paste(entriesCounter,thepage[entriesCounter],sep=""))
     if(thepage[entriesCounter] == '<h2 class=\"result-title\">')  {
       # url
@@ -210,17 +235,20 @@ for(gatherPagesCounter in 1:3){
       
       noticeText=""
       entriesProcessed = entriesProcessed+1
+      
+      processArticleReturn=processArticleWebPage(entryUrl, entryTitle, entryId,entryPublished)
+      articleFile=processArticleReturn[1]
+
       footNote=generateFootNote(entryTitle,entryPaperTitle, entryPublished, newspaperArchiveName, entryUrl)
-      lineOut<-paste(entriesProcessed,",\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",noticeText,"\"",sep="")
+      lineOut<-paste(entriesProcessed,",\"",entryId,"\",\"",entryUrl,"\",\"",entryPaperTitle,"\",\"",entryTitle,"\",\"",entryUpdated,"\",\"",entryPublished,"\",\"",entryPage,"\",\"",footNote,"\",\"",processArticleReturn[2],"\",\"",noticeText,"\"",sep="")
       print (lineOut)
-      articleFile=processArticleWebPage(entryUrl, entryTitle, entryId,entryPublished)
       
       writeLines(lineOut,outputFileCsvCon)
       
-      writeLines(paste(entriesProcessed," <a href=\"",articleFile,"\">",articleFile,"</a> ",entryTitle," <a href=\"",entryUrl,"\">",entryUrl,"</a><br>",sep=""),outputFileHTMLListCon)
+      writeLines(paste(entriesProcessed," <a href=\"",articleFile,"\">","local file","</a> <a href=\"",entryUrl," ","\">","web","</a> ",entryTitle,"  ",processArticleReturn[2],"<br>",sep=""),outputFileHTMLListCon)
       
       #clean up memory, the NLP work is memory intensive.  Keep the objects we need, including functions
-      objectsToKeep<-c("localuserpassword","gatherPagesCounter","entriesCounter","entities","thepage","searchURL", "workingSubDirectory","processArticleWebPage","generateFootNote","getEntitiesInText","outputFileCsvCon","outputFileHTMLListCon","entriesProcessed","newspaperArchiveName")
+      objectsToKeep<-c("localuserpassword","gatherPagesCounter","entriesCounter","entities","thepage","searchURL", "workingSubDirectory","processArticleWebPage","generateFootNote","getEntitiesInText","outputFileCsvCon","outputFileHTMLListCon","entriesProcessed","newspaperArchiveName","numberResults")
       rm(list=setdiff(ls(),objectsToKeep ))
       gc()
     }
