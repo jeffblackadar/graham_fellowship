@@ -1,0 +1,32 @@
+## Data problems with The Equity
+
+In the list of names, it appears there is duplication where we want uniqueness
+
+*Shawn Graham
+Shawn Hackney Society Junior
+Shawn I
+<---snip--->
+Shawn Gra
+Shawn Gra- McCorriston
+Shawn Gra-Principal
+*Shawn Graham
+Shawn Graham Bristol
+Shawn Graham Class
+Shawn GrahamMaster
+
+In reviewing this data, some names are separated by horizatal tabs (ASCII character 9) and others by spaces (character 32)
+
+This query returns a result:
+select name  FROM corpus_entities.entities_people where name like concat('Shawn',char(9),'Graham');
+
+This query shows over 21,000 names that have tabs in the data, which we don't want
+
+select name, count(*) FROM corpus_entities.entities_people where instr(name,char(9));
+
+We can't run this:
+
+UPDATE corpus_entities.entities_people SET name = REPLACE(name, char(9), char(32)) where name like concat('Shawn',char(9),'Graham');
+
+Because the name column is unique and there is already a name in there called Shawn Graham.
+
+Solution: re-run the program and strip out the tabs
