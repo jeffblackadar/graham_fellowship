@@ -17,10 +17,11 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
 #  writeLines(thisCell,outputFileHtmlCon)
   
   for(entity in entityInEdition) {
-    entitySql = gsub("'", "&apos;", entity)
-    entitySql = gsub("’", "&apos;", entity)
+    entitySql = gsub("'", "''", entity)
+    entitySql = gsub("’", "''", entity)
+    entitySql = gsub(char(9), " ", entity)
     entitySql = gsub("\n", "", entitySql)
-    entitySql = gsub("\'", "", entitySql)
+    entitySql = gsub("\'", "''", entitySql)
     entitySql = gsub("\\", "", entitySql, fixed=TRUE)
     
     
@@ -50,11 +51,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
         )
       print (query)
       rsInsert = dbSendQuery(mydb, query)
-      #dbClearResult(rsInsert)
     }
-    
-    
-    #dbClearResult(rs)
     
     #do cross reference
     
@@ -74,8 +71,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
       rs = dbSendQuery(mydb,query)
       dbRows<-dbFetch(rs)
       if (nrow(dbRows)==0){
-        
-        
+
         query <-
           paste(
             "INSERT INTO ",entity_document_x_table," (", entity_document_x_table_id_name,", id_source_document) VALUES(",
@@ -85,29 +81,17 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
           )
         print (query)
         rsInsert = dbSendQuery(mydb, query)
-        #dbClearResult(rsInsert)
       }
     }
   }
-  #gc() -- See if this is ok to leave out, but does not cause error
 }
 
-#https://www.r-bloggers.com/connecting-r-to-mysqlmariadb/
-#library(DBI)
-#mydb <- dbConnect(RMySQL::MySQL(), group = "group-name")
-#dbListTables(mydb)
+library(RMySQL)
+rmysql.settingsfile<-"C:\\ProgramData\\MySQL\\MySQL Server 5.7\\corpus_entities_with_misc.cnf"
 
-#connect to the database !!! There is a way better way to do this,
+rmysql.db<-"corpus_entities_with_misc"
+storiesDb<-dbConnect(RMySQL::MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 
-
-mydb = dbConnect(MySQL(), user='localuser', password=localuserpassword, dbname='corpus_entities', host='localhost')
-
-#RMySQL.settingsfile<-"C:\\ProgramData\\MySQL\\MySQL Server 5.7\\my.cnf"
-#mydb2 <- dbConnect(RMySQL::MySQL(), group = "corpus_entities")
-
-
-#dbListTables(mydb)
-#dbListFields(mydb, 'sourcedocument')
 
 
 # Extract entities from an AnnotatedPlainTextDocument
@@ -191,9 +175,7 @@ while (length(urlLine <-
       rsInsert = dbSendQuery(mydb,query)
       dbClearResult(rsInsert)
     }
-    
-    #dbClearResult(rs)
-    
+
     # get handle on ID    
     query<-paste("select id_source_document,source_document_processed from source_documents where source_document_name='",editionFileName,"'",sep='')
     rs = dbSendQuery(mydb,query)
@@ -230,17 +212,18 @@ while (length(urlLine <-
         equityEdition_doc <-
           AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
         sents(equityEdition_doc)
-        
-        
+
         person_ann <- Maxent_Entity_Annotator(kind = "person")
         location_ann <- Maxent_Entity_Annotator(kind = "location")
         organization_ann <- Maxent_Entity_Annotator(kind = "organization")
+        misc_ann <- Maxent_Entity_Annotator(kind = "misc")
         
         pipeline <- list(sent_ann,
                          word_ann,
                          person_ann,
                          location_ann,
-                         organization_ann)
+                         organization_ann,
+                         misc_ann)
         equityEdition_annotations <- annotate(equityEditionString, pipeline)
         equityEdition_doc <-
           AnnotatedPlainTextDocument(equityEditionString, equityEdition_annotations)
@@ -253,6 +236,9 @@ while (length(urlLine <-
         
         organizationsInEdition<-sort(unique(entities(equityEdition_doc, kind = "organization")))
         printAndStoreEntities(organizationsInEdition,outputFileOrganizationsHtmlCon, "entities_organizations", "id_entities_organization", "organizations_x_sourcedocuments", "id_entities_organization",id_source_document)
+        
+        miscInEdition<-sort(unique(entities(equityEdition_doc, kind = "misc")))
+        printAndStoreEntities(miscInEdition,outputFileMiscHtmlCon, "entities_misc", "id_entities_misc", "misc_x_sourcedocuments", "id_entities_misc",id_source_document)
 
         #Now that the processing is complete, update the row in source_documents to indicate that.
         query<-paste("update source_documents SET source_document_processed=1 where id_source_document =",id_source_document,"",sep='')
@@ -262,7 +248,7 @@ while (length(urlLine <-
       }
     }
   }
-  objectsToKeep<-c("localuserpassword","inputCon", "mydb","urlLine","entities","printAndStoreEntities" )
+  objectsToKeep<-c("inputCon", "mydb","urlLine","entities","printAndStoreEntities" )
   rm(list=setdiff(ls(),objectsToKeep ))
   gc()
 }
