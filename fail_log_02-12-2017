@@ -30,3 +30,7 @@ UPDATE corpus_entities.entities_people SET name = REPLACE(name, char(9), char(32
 Because the name column is unique and there is already a name in there called Shawn Graham.
 
 Solution: re-run the program and strip out the tabs
+
+This time I am also adding a table to misc
+
+Also making database authentication better
