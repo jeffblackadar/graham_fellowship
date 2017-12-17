@@ -75,15 +75,26 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
     #entitySql = gsub("\'", "''", entitySql)
     #entitySql = gsub("\\", "", entitySql, fixed=TRUE)
     
+    
+    
     correctedEntity = entity
+    
+    
     correctedEntity = gsub(tabChar, " ", correctedEntity)
     correctedEntity = gsub("\n", " ", correctedEntity)
     correctedEntity = gsub("\t", " ", correctedEntity)
-    correctedEntitySql = gsub("'", "''", correctedEntity)
+    correctedEntitySql = gsub("'''''''", " ", correctedEntity)
+    correctedEntitySql = gsub("''''''", " ", correctedEntitySql)
+    correctedEntitySql = gsub("'''''", " ", correctedEntitySql)
+    correctedEntitySql = gsub("''''", " ", correctedEntitySql)
+    correctedEntitySql = gsub("'''", " ", correctedEntitySql)
+    correctedEntitySql = gsub("''", " ", correctedEntitySql)
+    correctedEntitySql = gsub("'", "''", correctedEntitySql)
     correctedEntitySql = gsub("’", "''", correctedEntitySql)
     correctedEntitySql = gsub("\'", "''", correctedEntitySql)
     correctedEntitySql = gsub("\\", "", correctedEntitySql, fixed=TRUE)
-    
+    correctedEntitySql = gsub("''''", " ", correctedEntitySql)
+    print(correctedEntitySql)
     
     if(nchar(correctedEntitySql)>99){
       correctedEntitySql=substr(correctedEntitySql,1,99)
@@ -95,7 +106,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
             correctedEntitySql,
             "'",
             sep = '')
-    #print (query)
+    print (query)
     
     rs = dbSendQuery(mydb, query)
     dbRows <- dbFetch(rs)
@@ -109,7 +120,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
       correctedEntityWords = strsplit(correctedEntity, " ")
       correctedEntityWordsNorvig = strsplit(correctedEntity, " ")
       
-      #spelledWords = which_misspelled(correctedEntityWords, suggest=FALSE)
+      #sometimes which_misspelled() fails and so it is in a tryCatch()
       misSpelledWords <-tryCatch(
         {
           which_misspelled(correctedEntity, suggest=TRUE)
@@ -126,7 +137,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
       
       
       if(is.null(misSpelledWords)){
-        
+        #The R spell checker has not picked up a problem, so no need to do further checking.
         misSpelled=FALSE
       } else {
         for(counter in 1:length(misSpelledWords[[1]])){
@@ -154,7 +165,13 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
       }
 
       #Clean up any symbols that will cause an SQL error when inserted into the database
-      nameSpellCheckedSql = gsub("'", "''", nameSpellChecked)
+      nameSpellCheckedSql = gsub("'''''''", "\"", nameSpellChecked)
+      nameSpellCheckedSql = gsub("''''''", "\"", nameSpellCheckedSql)
+      nameSpellCheckedSql = gsub("'''''", "\"", nameSpellCheckedSql)
+      nameSpellCheckedSql = gsub("''''", "\"", nameSpellCheckedSql)
+      nameSpellCheckedSql = gsub("'''", "\"", nameSpellCheckedSql)
+      nameSpellCheckedSql = gsub("''", "\"", nameSpellCheckedSql)
+      nameSpellCheckedSql = gsub("'", "''", nameSpellCheckedSql)
       nameSpellCheckedSql = gsub("’", "''", nameSpellCheckedSql)
       nameSpellCheckedSql = gsub("\'", "''", nameSpellCheckedSql)
       nameSpellCheckedSql = gsub("\\", "", nameSpellCheckedSql, fixed=TRUE)
@@ -170,7 +187,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
           "'),99))",
           sep = ''
         )
-      #print (query)
+      print (query)
       rsInsert = dbSendQuery(mydb, query)
     }
     
@@ -178,6 +195,7 @@ printAndStoreEntities<-function(entityInEdition,outputFileHtmlCon, entity_table,
     
     # get handle on ID    
     query<-paste("select ",entity_table_id_name," from ",entity_table," where name='",correctedEntitySql,"'",sep='')
+    print(query) 
     rs = dbSendQuery(mydb,query)
     dbRows<-dbFetch(rs)
     if (nrow(dbRows)==0){
