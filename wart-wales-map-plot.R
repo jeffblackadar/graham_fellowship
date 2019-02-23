@@ -3,7 +3,7 @@ library(ggmap)
 #D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The R Journal, 5(1), 144-161. URL
 #http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
 
-register_google(key = "AIzaSyBPy7MkWGMc4lwOjJkc9bpaxMJITOGfwUs")
+register_google(key = "")
 setwd("C:/a_orgs/carleton/hist3814/R/graham_fellowship")
 
 
